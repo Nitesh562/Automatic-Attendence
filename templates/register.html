@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Register</title><link rel="stylesheet" href="/static/style.css"></head>
+<body><nav><b>Face Attendance</b><span><a href="/">Home</a><a href="/register">Register</a><a href="/attendance">Attendance</a></span></nav>
+<main class="container"><h1>Register Student</h1><div class="grid"><div class="card"><label>Name</label><input id="name" placeholder="Student name"><label>Roll No</label><input id="roll" placeholder="Roll number"><button class="btn" onclick="capture()">Start Camera & Capture</button><p id="msg"></p><div class="videoWrap"><video id="video" autoplay playsinline></video><canvas id="canvas" hidden></canvas></div><button class="btn" onclick="save()">Save Registration</button></div><div class="card"><h3>Samples: <span id="count">0</span>/15</h3><p>Keep your face centered. Slowly turn slightly left/right while samples are captured.</p><div id="thumbs"></div></div></div></main>
+<script>
+let stream, samples=[];
+async function capture(){
+ if(!name.value.trim()||!roll.value.trim()){msg.textContent="Enter name and roll number.";return}
+ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:640},height:{ideal:480}},audio:false});
+ video.srcObject=stream; samples=[]; thumbs.innerHTML="";
+ let i=0; const timer=setInterval(()=>{ if(i>=15){clearInterval(timer);stream.getTracks().forEach(t=>t.stop());msg.textContent="Capture complete.";return}
+ const c=document.getElementById("canvas"),ctx=c.getContext("2d");c.width=video.videoWidth;c.height=video.videoHeight;ctx.drawImage(video,0,0);
+ samples.push(c.toDataURL("image/jpeg",.8)); const im=document.createElement("img");im.src=samples.at(-1);thumbs.appendChild(im);count.textContent=++i;
+ },350);
+}
+async function save(){
+ msg.textContent="Saving and training model...";
+ const r=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name.value,roll_no:roll.value,images:samples})});
+ const j=await r.json();msg.textContent=j.message||"Done.";
+ if(j.ok){samples=[];count.textContent=0;thumbs.innerHTML="";}
+}
+</script></body></html>
